@@ -1,7 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <time.h>
-#include <string>
 #include "vertex.h"
 #include "relationship.h"
 #include "graph.h"
@@ -23,7 +21,7 @@ int main() {
     
     oc::graph_algorithm alg;
     
-    std::vector<std::pair<oc::vertex*,double>> result = alg.spreading_activation(g,id,6);
+    std::vector<std::pair<oc::vertex*,double>> result = alg.spreading_activation(g,id,2);
 
     int i=0;
     for (auto p = result.begin(); p != result.end(); ++p) {

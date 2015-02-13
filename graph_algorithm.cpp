@@ -16,15 +16,15 @@
 
 #include <iostream>
 #include <map>
-#include <stdexcept>
 
 namespace oc {
     
     typedef std::pair<vertex*,double> CPair;
     
     std::vector<std::pair<vertex*,double>> graph_algorithm::spreading_activation(oc::graph& g,const std::string& start_id, int max_hops) {
-        
-        clock_t start = clock();
+
+        std::chrono::time_point<std::chrono::system_clock> start, end;
+        start = std::chrono::system_clock::now();
         
         //google::dense_hash_map<long unsigned int,double> aggregates;
         std::vector<std::pair<long unsigned int,double>> aggregates;
@@ -50,15 +50,17 @@ namespace oc {
         
         std::vector<std::pair<vertex*,double>> result;
         
-        long unsigned int last_id = -1;
+        long unsigned int last_id = 0;
+        bool first = true;
         double sum = 0;
         for (auto p : aggregates) {
-            if (last_id == -1 || last_id != p.first) {
-                if (last_id != -1) {
+            if (first == true || last_id != p.first) {
+                if (!first) {
                     result.push_back(std::pair<vertex*,double>{g[last_id],sum});
                 }
                 sum = 0;
                 last_id = p.first;
+                first = false;
             }
             sum += p.second;
         }
@@ -76,10 +78,12 @@ namespace oc {
         }*/
         
         std::sort(result.begin(),result.end(),[](CPair& a, CPair& b){return a.second > b.second;});
+
+        end = std::chrono::system_clock::now();
         
-        clock_t duration = clock() - start;
-        
-        std::cout << "Runtime for " << max_hops << " hops: " << duration << " clocks, " << duration * 1000 / CLOCKS_PER_SEC << " ms" << std::endl;
+        std::cout << "Runtime for " << max_hops << " hops: " <<
+                    std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() <<
+                    " ms" << std::endl;
         
         return result;
     }

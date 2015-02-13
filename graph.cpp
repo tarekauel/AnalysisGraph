@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <string>
 #include <boost/regex.hpp>
 
 #include "graph.h"
@@ -11,7 +10,9 @@
 namespace oc {
     
     void graph::build_graph(std::ifstream& in) {
-        clock_t t_start = clock();
+        std::chrono::time_point<std::chrono::system_clock> start, end;
+        start = std::chrono::system_clock::now();
+
         if (!in.is_open()) {
             std::cerr << "File could not be opended" << std::endl;
             return;
@@ -34,8 +35,9 @@ namespace oc {
                 }
             }
         }
-        clock_t t = clock() - t_start;
-        std::cout << "Parsed file in " << t << " clocks (" << t*1000/CLOCKS_PER_SEC << "ms)" << std::endl;
+        end = std::chrono::system_clock::now();
+        std::cout << "Parsed file in " << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() <<
+                     " ms" << std::endl;
     }
 
     graph::~graph() {
@@ -66,7 +68,7 @@ namespace oc {
     }
     
     unsigned long graph::get_num_edges() const {
-        long count{0};
+        unsigned long count{0};
         for (auto v : vertex_list) {
             count += v->num_out_edges();
         }
