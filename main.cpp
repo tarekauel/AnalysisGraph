@@ -1,12 +1,27 @@
 #include <iostream>
 #include <fstream>
+#include <unistd.h>
+#include <execinfo.h>
 #include "vertex.h"
 #include "relationship.h"
 #include "graph.h"
 #include "graph_algorithm.h"
 
-int main() {
+void handler(int sig) {
+    void *array[10];
+    size_t size;
 
+    // get void*'s for all entries on the stack
+    size = backtrace(array, 10);
+
+    // print out all the frames to stderr
+    fprintf(stderr, "Error: signal %d:\n", sig);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+    exit(1);
+}
+
+int main() {
+    signal(SIGSEGV, handler);
     std::ifstream in("/Users/tarek/xcode/AnalysisGraph/edges_dump.csv", std::ifstream::in);
     //std::ifstream in("/Users/tarek/xcode/AnalysisGraph/sa_demo.csv", std::ifstream::in);
     oc::graph g{};

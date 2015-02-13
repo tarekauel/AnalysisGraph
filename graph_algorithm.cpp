@@ -54,7 +54,7 @@ namespace oc {
                 task_list->erase(task_list->begin(),task_list->end());
             }
             lock.unlock();
-
+            int z = 1;
             for (int j = 0; j != custom_task_list.size(); ++j) {
                 spreading_activation_step(custom_task_list[j], custom_aggregates, custom_task_list, max_hops);
                 if (custom_task_list.size() > limit) {
@@ -90,10 +90,10 @@ namespace oc {
         task_list.push_back(i);
 
         std::thread w1 (&graph_algorithm::worker,*this,&task_list,&aggregates,max_hops,1);
-        std::thread w2 (&graph_algorithm::worker,*this,&task_list,&aggregates,max_hops,2);
+        //std::thread w2 (&graph_algorithm::worker,*this,&task_list,&aggregates,max_hops,2);
 
         w1.join();
-        w2.join();
+        //w2.join();
         
         tbb::parallel_sort( aggregates.begin(), aggregates.end(),[](std::pair<long unsigned int,double>& a, std::pair<long unsigned int,double>& b){return a.first > b.first;});
         
