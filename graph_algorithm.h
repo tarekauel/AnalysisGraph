@@ -30,16 +30,16 @@ namespace oc {
         Impuls* prev_impuls;
         int hops = 0;
     };
-    
+
     class graph_algorithm {
-    private:
-        
     public:
-        std::vector<std::pair<vertex*,double>> spreading_activation(oc::graph&,const std::string&,int); 
+        std::vector<std::pair<vertex*,double>> spreading_activation(oc::graph&,const std::string&,int);
+        void worker(std::vector<Impuls*>*, std::vector<std::pair<long unsigned int,double>>*,int,int);
         void spreading_activation_step(Impuls*,std::vector<std::pair<long unsigned int,double>>&, std::vector<Impuls*>&,int);
         bool check_history(const Impuls*, const vertex*);
     };
-    
+
+
 }
 
 #endif /* defined(__AnalysisGraph__graph_algorithm__) */
