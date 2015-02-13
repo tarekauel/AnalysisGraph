@@ -22,6 +22,7 @@ void handler(int sig) {
 
 int main() {
     signal(SIGSEGV, handler);
+
     std::ifstream in("/Users/tarek/xcode/AnalysisGraph/edges_dump.csv", std::ifstream::in);
     //std::ifstream in("/Users/tarek/xcode/AnalysisGraph/sa_demo.csv", std::ifstream::in);
     oc::graph g{};
@@ -36,7 +37,7 @@ int main() {
 
     oc::graph_algorithm alg;
     
-    std::vector<std::pair<oc::vertex*,double>> result = alg.spreading_activation(g,id,3);
+    std::vector<std::pair<oc::vertex*,double>> result = alg.spreading_activation(g,id,10,8,0.00001);
 
     int i=0;
     for (auto p = result.begin(); p != result.end(); ++p) {
@@ -47,6 +48,5 @@ int main() {
         }
         break;
     }
-    
     return 0;
 }
