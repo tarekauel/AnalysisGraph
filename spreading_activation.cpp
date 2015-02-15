@@ -1,12 +1,12 @@
 //
-//  graph_algorithm.cpp
+//  spreading_activation.cpp
 //  AnalysisGraph
 //
 //  Created by Tarek Auel on 12.02.15.
 //
 //
 
-#include "graph_algorithm.h"
+#include "spreading_activation.h"
 #include "vertex.h"
 #include "graph.h"
 #include "relationship.h"
@@ -30,7 +30,7 @@ namespace oc {
 
     std::mutex shared_list;
 
-    void graph_algorithm::worker(std::vector<std::vector<Impuls*>*>* task_list, std::vector<std::pair<long unsigned int,Impuls*>>* aggregates,int max_hops,double threshold, int thread, std::vector<std::timed_mutex*>* locks, std::vector<unsigned long*>* counters, std::vector<Impuls*>* created_impuls) {
+    void spreading_activation::worker(std::vector<std::vector<Impuls*>*>* task_list, std::vector<std::pair<long unsigned int,Impuls*>>* aggregates,int max_hops,double threshold, int thread, std::vector<std::timed_mutex*>* locks, std::vector<int*>* counters, std::vector<Impuls*>* created_impuls) {
         std::vector<std::pair<long unsigned int,Impuls*>> custom_aggregates;
         std::vector<Impuls*> custom_created_impuls;
 
@@ -38,7 +38,7 @@ namespace oc {
         std::unique_lock<std::timed_mutex> lck_own {*(*locks)[thread], std::defer_lock};
 
         std::vector<Impuls*>* custom_task_list = task_list->at(thread);
-        unsigned long* counter = counters->at(thread);
+        int* counter = counters->at(thread);
 
         bool first = true;
         int could_not_grab = 0;
@@ -49,14 +49,14 @@ namespace oc {
                 --finished_threads;
                 bool grabbed = false;
                 int random = std::rand() % started_threads;
-                for (unsigned long j=0; j != locks->size(); ++j) {
-                    unsigned long i = (j + random) % started_threads;
+                for (int j=0; j != locks->size(); ++j) {
+                    int i = (j + random) % started_threads;
                     if (i!=thread) {
                         std::unique_lock<std::timed_mutex> temp_lock {*(locks->at(i)),std::defer_lock};
                         if (temp_lock.try_lock_for(std::chrono::milliseconds(10))) {
                             int *temp_counter = counters->at(i);
                             std::vector<Impuls*> *temp_task_list = task_list->at(i);
-                            unsigned long diff = temp_task_list->size() - *temp_counter;
+                            int diff = temp_task_list->size() - *temp_counter;
                             if (diff > limit) {
                                 if (lck_own.try_lock_for(std::chrono::milliseconds(10))) {
                                     std::move(temp_task_list->end() - diff / 2, temp_task_list->end(), std::back_inserter(*custom_task_list));
@@ -95,7 +95,7 @@ namespace oc {
         } while (started_threads != finished_threads && could_not_grab != 2);
     }
 
-    std::vector<std::pair<vertex*,double>> graph_algorithm::spreading_activation(oc::graph& g,const std::string& start_id, int max_hops,int num_threads, double threshold) {
+    std::vector<std::pair<vertex*,double>> spreading_activation::spreading_activation(oc::graph& g,const std::string& start_id, int max_hops,int num_threads, double threshold) {
 
         std::chrono::time_point<std::chrono::system_clock> start, end;
         start = std::chrono::system_clock::now();
@@ -110,14 +110,14 @@ namespace oc {
         std::vector<std::thread> threads;
         std::vector<std::timed_mutex*> mutex_list;
         std::vector<std::vector<Impuls*>*> task_lists;
-        std::vector<unsigned long*> counters;
+        std::vector<int*> counters;
 
         started_threads = num_threads;
 
         for (int i=0; i != num_threads;++i) {
             std::timed_mutex* mutex = new std::timed_mutex();
             mutex_list.push_back(mutex);
-            unsigned long* j = new unsigned long;
+            int* j = new int;
             counters.push_back(j);
             task_lists.push_back(new std::vector<Impuls*>());
             if (i==0) {
@@ -126,14 +126,14 @@ namespace oc {
         }
 
         for (int i=0; i != num_threads;++i) {
-            threads.push_back(std::thread(&graph_algorithm::worker,*this,&task_lists,&aggregates,max_hops,threshold,i,&mutex_list,&counters,&created_impuls));
+            threads.push_back(std::thread(&spreading_activation::worker,*this,&task_lists,&aggregates,max_hops,threshold,i,&mutex_list,&counters,&created_impuls));
         }
         
         for (auto p = threads.begin(); p != threads.end(); ++p) {
             p->join();
         }
 
-        for (unsigned long i=0; i != num_threads;++i) {
+        for (int i=0; i != num_threads;++i) {
             delete mutex_list.at(i);
             delete counters.at(i);
             delete task_lists.at(i);
@@ -177,7 +177,7 @@ namespace oc {
         return result;
     };
     
-    void graph_algorithm::spreading_activation_step(Impuls* i,std::vector<std::pair<long unsigned int,Impuls*>>& aggregates, std::vector<Impuls*>& task_list, int max_hops, double threshold, std::vector<Impuls*>* created_impuls) {
+    void spreading_activation::spreading_activation_step(Impuls* i,std::vector<std::pair<long unsigned int,Impuls*>>& aggregates, std::vector<Impuls*>& task_list, int max_hops, double threshold, std::vector<Impuls*>* created_impuls) {
         std::vector<vertex*> neighbors = i->node->get_neighbors();
         if (i->hops != 0) {
             i->power /= neighbors.size() - 1;
@@ -201,7 +201,7 @@ namespace oc {
         }
     }
     
-    bool graph_algorithm::check_history(Impuls* i, const oc::vertex* v) {
+    bool spreading_activation::check_history(Impuls* i, const oc::vertex* v) {
         if (i->node == v) {
             return true;
         } else {

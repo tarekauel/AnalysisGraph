@@ -1,5 +1,5 @@
 //
-//  graph_algorithm.h
+//  spreading_activation.h
 //  AnalysisGraph
 //
 //  Created by Tarek Auel on 12.02.15.
@@ -30,11 +30,11 @@ namespace oc {
         int hops = 0;
     };
 
-    class graph_algorithm {
+    class spreading_activation {
     public:
 
         std::vector<std::pair<vertex*,double>> spreading_activation(oc::graph&,const std::string&,int,int,double);
-        void worker(std::vector<std::vector<Impuls*>*>*, std::vector<std::pair<long unsigned int,Impuls*>>*,int,double,int,std::vector<std::timed_mutex*>*,std::vector<unsigned long*>*,std::vector<Impuls*>*);
+        void worker(std::vector<std::vector<Impuls*>*>*, std::vector<std::pair<long unsigned int,Impuls*>>*,int,double,int,std::vector<std::timed_mutex*>*,std::vector<int*>*,std::vector<Impuls*>*);
         void spreading_activation_step(Impuls*,std::vector<std::pair<long unsigned int,Impuls*>>&, std::vector<Impuls*>&,int,double,std::vector<Impuls*>*);
         bool check_history(Impuls*, const vertex*);
     };

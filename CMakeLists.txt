@@ -17,7 +17,7 @@ find_package(TBB REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${TBB_INCLUDE_DIRS})
 
-set(SOURCE_FILES main.cpp graph.h graph.cpp vertex.h vertex.cpp relationship.h relationship.cpp graph_algorithm.cpp)
+set(SOURCE_FILES main.cpp graph.h graph.cpp vertex.h vertex.cpp relationship.h relationship.cpp spreading_activation.cpp)
 add_executable(AnalysisGraphTool ${SOURCE_FILES})
 
 target_link_libraries(AnalysisGraphTool ${Boost_LIBRARIES})
