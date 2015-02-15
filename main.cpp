@@ -25,19 +25,20 @@ int main() {
 
     std::ifstream in("/Users/tarek/xcode/AnalysisGraph/edges_dump.csv", std::ifstream::in);
     //std::ifstream in("/Users/tarek/xcode/AnalysisGraph/sa_demo.csv", std::ifstream::in);
+
     oc::graph g{};
     
     g.build_graph(in);
     
     std::cout << std::endl << g << std::endl;
-    
 
     std::string id = "organization/big-data-elephants";
     //std::string id = "A";
+    //std::string id = "person/brian-krpec";
 
     oc::graph_algorithm alg;
     
-    std::vector<std::pair<oc::vertex*,double>> result = alg.spreading_activation(g,id,10,8,0.00001);
+    std::vector<std::pair<oc::vertex*,double>> result = alg.spreading_activation(g,id,6,7,0);
 
     int i=0;
     for (auto p = result.begin(); p != result.end(); ++p) {

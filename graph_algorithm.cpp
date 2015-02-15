@@ -29,8 +29,8 @@ namespace oc {
 
     std::mutex shared_list;
 
-    void graph_algorithm::worker(std::vector<std::vector<std::shared_ptr<Impuls>>*>* task_list, std::vector<std::pair<long unsigned int,double>>* aggregates,int max_hops,double threshold, int thread, std::vector<std::timed_mutex*>* locks, std::vector<int*>* counters) {
-        std::vector<std::pair<long unsigned int,double>> custom_aggregates;
+    void graph_algorithm::worker(std::vector<std::vector<std::shared_ptr<Impuls>>*>* task_list, std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>>* aggregates,int max_hops,double threshold, int thread, std::vector<std::timed_mutex*>* locks, std::vector<int*>* counters) {
+        std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>> custom_aggregates;
         
         std::unique_lock<std::mutex> lck_shared {shared_list, std::defer_lock};
         std::unique_lock<std::timed_mutex> lck_own {*(*locks)[thread], std::defer_lock};
@@ -96,11 +96,9 @@ namespace oc {
         std::chrono::time_point<std::chrono::system_clock> start, end;
         start = std::chrono::system_clock::now();
 
-        std::vector<std::pair<long unsigned int,double>> aggregates;
-        
-        vertex* start_node = g.get_vertex(start_id);
-        aggregates.push_back(std::pair<long unsigned int,double>{start_node->get_id(),1});
+        std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>> aggregates;
 
+        vertex* start_node = g.get_vertex(start_id);
         std::shared_ptr<Impuls> start_impuls(new Impuls(start_node,1));
 
         std::vector<std::thread> threads;
@@ -137,10 +135,10 @@ namespace oc {
 
         std::cout << "Aggregates: " << aggregates.size() << std::endl;
 
-        tbb::parallel_sort( aggregates.begin(), aggregates.end(),[](std::pair<long unsigned int,double>& a, std::pair<long unsigned int,double>& b){return a.first > b.first;});
+        tbb::parallel_sort( aggregates.begin(), aggregates.end(),[](std::pair<long unsigned int,std::shared_ptr<Impuls>>& a, std::pair<long unsigned int,std::shared_ptr<Impuls>>& b){return a.first > b.first;});
         
         std::vector<std::pair<vertex*,double>> result;
-        
+
         long unsigned int last_id = 0;
         bool first = true;
         double sum = 0;
@@ -153,10 +151,12 @@ namespace oc {
                 last_id = p.first;
                 first = false;
             }
-            sum += p.second;
+            sum += p.second->power;
         }
         
         result.push_back(std::pair<vertex*,double>{g[last_id],sum});
+
+        result.push_back(std::pair<vertex*,double>{start_impuls->node,1});
         
         std::sort(result.begin(),result.end(),[](CPair& a, CPair& b){return a.second > b.second;});
 
@@ -169,20 +169,19 @@ namespace oc {
         return result;
     };
     
-    void graph_algorithm::spreading_activation_step(std::shared_ptr<Impuls> i,std::vector<std::pair<long unsigned int,double>>& aggregates, std::vector<std::shared_ptr<Impuls>>& task_list, int max_hops, double threshold) {
+    void graph_algorithm::spreading_activation_step(std::shared_ptr<Impuls> i,std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>>& aggregates, std::vector<std::shared_ptr<Impuls>>& task_list, int max_hops, double threshold) {
         std::vector<vertex*> neighbors = i->node->get_neighbors();
         if (i->hops != 0) {
             i->power /= neighbors.size() - 1;
         } else {
             i->power /= neighbors.size();
         }
-        
+        //todo ein impuls für jeden koten
+
         for (auto n : neighbors) {
-        //tbb::parallel_for(neighbors.begin(),neighbors.end(),[&](vertex* n){
             if (!check_history(i, n)) {
-                aggregates.push_back(std::pair<long unsigned int,double>{(n)->get_id(),i->power});
-                //aggregates[n->get_id()] += i->power;
-                if (i->hops + 1 < max_hops && i->power > threshold) {
+                aggregates.push_back(std::pair<long unsigned int,std::shared_ptr<Impuls>>{(n)->get_id(),i});
+                if (i->hops + 1 < max_hops && ( i->power > threshold || threshold == 0)) {
                     std::shared_ptr<Impuls> new_impuls(new Impuls());
                     new_impuls->prev_impuls = i;
                     new_impuls->hops = i->hops + 1;
@@ -191,7 +190,7 @@ namespace oc {
                     task_list.push_back(new_impuls);
                 }
             }
-        }//);
+        }
     }
     
     bool graph_algorithm::check_history(std::shared_ptr<Impuls> i, const oc::vertex* v) {

@@ -34,8 +34,8 @@ namespace oc {
     public:
 
         std::vector<std::pair<vertex*,double>> spreading_activation(oc::graph&,const std::string&,int,int,double);
-        void worker(std::vector<std::vector<std::shared_ptr<Impuls>>*>*, std::vector<std::pair<long unsigned int,double>>*,int,double,int,std::vector<std::timed_mutex*>*,std::vector<int*>*);
-        void spreading_activation_step(std::shared_ptr<Impuls>,std::vector<std::pair<long unsigned int,double>>&, std::vector<std::shared_ptr<Impuls>>&,int,double);
+        void worker(std::vector<std::vector<std::shared_ptr<Impuls>>*>*, std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>>*,int,double,int,std::vector<std::timed_mutex*>*,std::vector<int*>*);
+        void spreading_activation_step(std::shared_ptr<Impuls>,std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>>&, std::vector<std::shared_ptr<Impuls>>&,int,double);
         bool check_history(std::shared_ptr<Impuls>, const vertex*);
     };
 
