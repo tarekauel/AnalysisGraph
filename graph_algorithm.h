@@ -26,7 +26,7 @@ namespace oc {
 
         vertex* node;
         double power;
-        std::shared_ptr<Impuls> prev_impuls;
+        Impuls* prev_impuls;
         int hops = 0;
     };
 
@@ -34,9 +34,9 @@ namespace oc {
     public:
 
         std::vector<std::pair<vertex*,double>> spreading_activation(oc::graph&,const std::string&,int,int,double);
-        void worker(std::vector<std::vector<std::shared_ptr<Impuls>>*>*, std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>>*,int,double,int,std::vector<std::timed_mutex*>*,std::vector<int*>*);
-        void spreading_activation_step(std::shared_ptr<Impuls>,std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>>&, std::vector<std::shared_ptr<Impuls>>&,int,double);
-        bool check_history(std::shared_ptr<Impuls>, const vertex*);
+        void worker(std::vector<std::vector<Impuls*>*>*, std::vector<std::pair<long unsigned int,Impuls*>>*,int,double,int,std::vector<std::timed_mutex*>*,std::vector<unsigned long*>*,std::vector<Impuls*>*);
+        void spreading_activation_step(Impuls*,std::vector<std::pair<long unsigned int,Impuls*>>&, std::vector<Impuls*>&,int,double,std::vector<Impuls*>*);
+        bool check_history(Impuls*, const vertex*);
     };
 
 
