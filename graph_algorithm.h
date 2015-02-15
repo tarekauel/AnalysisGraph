@@ -9,10 +9,9 @@
 #ifndef __AnalysisGraph__graph_algorithm__
 #define __AnalysisGraph__graph_algorithm__
 
-#include <google/dense_hash_map>
-
 #include <string>
 #include <vector>
+#include <mutex>
 
 namespace oc {
     
@@ -27,19 +26,20 @@ namespace oc {
 
         vertex* node;
         double power;
-        Impuls* prev_impuls;
+        std::shared_ptr<Impuls> prev_impuls;
         int hops = 0;
     };
-    
+
     class graph_algorithm {
-    private:
-        
     public:
-        std::vector<std::pair<vertex*,double>> spreading_activation(oc::graph&,const std::string&,int); 
-        void spreading_activation_step(Impuls*,std::vector<std::pair<long unsigned int,double>>&, std::vector<Impuls*>&,int);
-        bool check_history(const Impuls*, const vertex*);
+
+        std::vector<std::pair<vertex*,double>> spreading_activation(oc::graph&,const std::string&,int,int,double);
+        void worker(std::vector<std::vector<std::shared_ptr<Impuls>>*>*, std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>>*,int,double,int,std::vector<std::timed_mutex*>*,std::vector<int*>*);
+        void spreading_activation_step(std::shared_ptr<Impuls>,std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>>&, std::vector<std::shared_ptr<Impuls>>&,int,double);
+        bool check_history(std::shared_ptr<Impuls>, const vertex*);
     };
-    
+
+
 }
 
 #endif /* defined(__AnalysisGraph__graph_algorithm__) */
