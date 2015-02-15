@@ -13,6 +13,7 @@
 
 #include <tbb/parallel_sort.h>
 #include <tbb/parallel_reduce.h>
+#include <tbb/parallel_for_each.h>
 
 #include <iostream>
 #include <map>
@@ -29,14 +30,15 @@ namespace oc {
 
     std::mutex shared_list;
 
-    void graph_algorithm::worker(std::vector<std::vector<std::shared_ptr<Impuls>>*>* task_list, std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>>* aggregates,int max_hops,double threshold, int thread, std::vector<std::timed_mutex*>* locks, std::vector<int*>* counters) {
-        std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>> custom_aggregates;
-        
+    void graph_algorithm::worker(std::vector<std::vector<Impuls*>*>* task_list, std::vector<std::pair<long unsigned int,Impuls*>>* aggregates,int max_hops,double threshold, int thread, std::vector<std::timed_mutex*>* locks, std::vector<unsigned long*>* counters, std::vector<Impuls*>* created_impuls) {
+        std::vector<std::pair<long unsigned int,Impuls*>> custom_aggregates;
+        std::vector<Impuls*> custom_created_impuls;
+
         std::unique_lock<std::mutex> lck_shared {shared_list, std::defer_lock};
         std::unique_lock<std::timed_mutex> lck_own {*(*locks)[thread], std::defer_lock};
 
-        std::vector<std::shared_ptr<Impuls>>* custom_task_list = task_list->at(thread);
-        int* counter = counters->at(thread);
+        std::vector<Impuls*>* custom_task_list = task_list->at(thread);
+        unsigned long* counter = counters->at(thread);
 
         bool first = true;
         int could_not_grab = 0;
@@ -47,14 +49,14 @@ namespace oc {
                 --finished_threads;
                 bool grabbed = false;
                 int random = std::rand() % started_threads;
-                for (int j=0; j != locks->size(); ++j) {
-                    int i = (j + random) % started_threads;
+                for (unsigned long j=0; j != locks->size(); ++j) {
+                    unsigned long i = (j + random) % started_threads;
                     if (i!=thread) {
                         std::unique_lock<std::timed_mutex> temp_lock {*(locks->at(i)),std::defer_lock};
                         if (temp_lock.try_lock_for(std::chrono::milliseconds(10))) {
                             int *temp_counter = counters->at(i);
-                            std::vector<std::shared_ptr<Impuls>> *temp_task_list = task_list->at(i);
-                            int diff = temp_task_list->size() - *temp_counter;
+                            std::vector<Impuls*> *temp_task_list = task_list->at(i);
+                            unsigned long diff = temp_task_list->size() - *temp_counter;
                             if (diff > limit) {
                                 if (lck_own.try_lock_for(std::chrono::milliseconds(10))) {
                                     std::move(temp_task_list->end() - diff / 2, temp_task_list->end(), std::back_inserter(*custom_task_list));
@@ -74,7 +76,7 @@ namespace oc {
 
             lck_own.lock();
             for (*counter = 0; *counter != custom_task_list->size(); ++(*counter)) {
-                spreading_activation_step(custom_task_list->at(*counter), custom_aggregates, *custom_task_list, max_hops,threshold);
+                spreading_activation_step(custom_task_list->at(*counter), custom_aggregates, *custom_task_list, max_hops,threshold,&custom_created_impuls);
                 lck_own.unlock();
                 lck_own.lock();
             }
@@ -85,6 +87,8 @@ namespace oc {
             lck_shared.lock();
             std::move(custom_aggregates.begin(), custom_aggregates.end(), std::back_inserter(*aggregates));
             custom_aggregates.resize(0);
+            std::move(custom_created_impuls.begin(), custom_created_impuls.end(), std::back_inserter(*created_impuls));
+            custom_created_impuls.resize(0);
 
             finished_threads++;
             lck_shared.unlock();
@@ -96,38 +100,40 @@ namespace oc {
         std::chrono::time_point<std::chrono::system_clock> start, end;
         start = std::chrono::system_clock::now();
 
-        std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>> aggregates;
+        std::vector<std::pair<long unsigned int,Impuls*>> aggregates;
+        std::vector<Impuls*> created_impuls;
 
         vertex* start_node = g.get_vertex(start_id);
-        std::shared_ptr<Impuls> start_impuls(new Impuls(start_node,1));
+        Impuls* start_impuls = new Impuls(start_node,1);
+        created_impuls.push_back(start_impuls);
 
         std::vector<std::thread> threads;
         std::vector<std::timed_mutex*> mutex_list;
-        std::vector<std::vector<std::shared_ptr<Impuls>>*> task_lists;
-        std::vector<int*> counters;
+        std::vector<std::vector<Impuls*>*> task_lists;
+        std::vector<unsigned long*> counters;
 
         started_threads = num_threads;
 
         for (int i=0; i != num_threads;++i) {
             std::timed_mutex* mutex = new std::timed_mutex();
             mutex_list.push_back(mutex);
-            int* j = new int;
+            unsigned long* j = new unsigned long;
             counters.push_back(j);
-            task_lists.push_back(new std::vector<std::shared_ptr<Impuls>>());
+            task_lists.push_back(new std::vector<Impuls*>());
             if (i==0) {
                 task_lists.at(0)->push_back(start_impuls);
             }
         }
 
         for (int i=0; i != num_threads;++i) {
-            threads.push_back(std::thread(&graph_algorithm::worker,*this,&task_lists,&aggregates,max_hops,threshold,i,&mutex_list,&counters));
+            threads.push_back(std::thread(&graph_algorithm::worker,*this,&task_lists,&aggregates,max_hops,threshold,i,&mutex_list,&counters,&created_impuls));
         }
         
         for (auto p = threads.begin(); p != threads.end(); ++p) {
             p->join();
         }
 
-        for (int i=0; i != num_threads;++i) {
+        for (unsigned long i=0; i != num_threads;++i) {
             delete mutex_list.at(i);
             delete counters.at(i);
             delete task_lists.at(i);
@@ -135,7 +141,7 @@ namespace oc {
 
         std::cout << "Aggregates: " << aggregates.size() << std::endl;
 
-        tbb::parallel_sort( aggregates.begin(), aggregates.end(),[](std::pair<long unsigned int,std::shared_ptr<Impuls>>& a, std::pair<long unsigned int,std::shared_ptr<Impuls>>& b){return a.first > b.first;});
+        tbb::parallel_sort( aggregates.begin(), aggregates.end(),[](std::pair<long unsigned int,Impuls*>& a, std::pair<long unsigned int,Impuls*>& b){return a.first > b.first;});
         
         std::vector<std::pair<vertex*,double>> result;
 
@@ -157,8 +163,10 @@ namespace oc {
         result.push_back(std::pair<vertex*,double>{g[last_id],sum});
 
         result.push_back(std::pair<vertex*,double>{start_impuls->node,1});
+
+        tbb::parallel_for_each(created_impuls.begin(),created_impuls.end(), [](Impuls* p){delete p;});
         
-        std::sort(result.begin(),result.end(),[](CPair& a, CPair& b){return a.second > b.second;});
+        tbb::parallel_sort(result.begin(),result.end(),[](CPair& a, CPair& b){return a.second > b.second;});
 
         end = std::chrono::system_clock::now();
         
@@ -169,31 +177,31 @@ namespace oc {
         return result;
     };
     
-    void graph_algorithm::spreading_activation_step(std::shared_ptr<Impuls> i,std::vector<std::pair<long unsigned int,std::shared_ptr<Impuls>>>& aggregates, std::vector<std::shared_ptr<Impuls>>& task_list, int max_hops, double threshold) {
+    void graph_algorithm::spreading_activation_step(Impuls* i,std::vector<std::pair<long unsigned int,Impuls*>>& aggregates, std::vector<Impuls*>& task_list, int max_hops, double threshold, std::vector<Impuls*>* created_impuls) {
         std::vector<vertex*> neighbors = i->node->get_neighbors();
         if (i->hops != 0) {
             i->power /= neighbors.size() - 1;
         } else {
             i->power /= neighbors.size();
         }
-        //todo ein impuls für jeden koten
 
         for (auto n : neighbors) {
             if (!check_history(i, n)) {
-                aggregates.push_back(std::pair<long unsigned int,std::shared_ptr<Impuls>>{(n)->get_id(),i});
+                aggregates.push_back(std::pair<long unsigned int,Impuls*>{(n)->get_id(),i});
                 if (i->hops + 1 < max_hops && ( i->power > threshold || threshold == 0)) {
-                    std::shared_ptr<Impuls> new_impuls(new Impuls());
+                    Impuls* new_impuls = new Impuls();
                     new_impuls->prev_impuls = i;
                     new_impuls->hops = i->hops + 1;
                     new_impuls->power = i->power;
                     new_impuls->node = n;
                     task_list.push_back(new_impuls);
+                    created_impuls->push_back(new_impuls);
                 }
             }
         }
     }
     
-    bool graph_algorithm::check_history(std::shared_ptr<Impuls> i, const oc::vertex* v) {
+    bool graph_algorithm::check_history(Impuls* i, const oc::vertex* v) {
         if (i->node == v) {
             return true;
         } else {
