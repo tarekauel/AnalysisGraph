@@ -33,7 +33,7 @@ namespace oc {
     class spreading_activation {
     public:
 
-        std::vector<std::pair<vertex*,double>> spreading_activation(oc::graph&,const std::string&,int,int,double);
+        std::vector<std::pair<vertex*,double>> algorithm(oc::graph&,const std::string&,int,int,double);
         void worker(std::vector<std::vector<Impuls*>*>*, std::vector<std::pair<long unsigned int,Impuls*>>*,int,double,int,std::vector<std::timed_mutex*>*,std::vector<int*>*,std::vector<Impuls*>*);
         void spreading_activation_step(Impuls*,std::vector<std::pair<long unsigned int,Impuls*>>&, std::vector<Impuls*>&,int,double,std::vector<Impuls*>*);
         bool check_history(Impuls*, const vertex*);

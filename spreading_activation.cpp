@@ -95,7 +95,7 @@ namespace oc {
         } while (started_threads != finished_threads && could_not_grab != 2);
     }
 
-    std::vector<std::pair<vertex*,double>> spreading_activation::spreading_activation(oc::graph& g,const std::string& start_id, int max_hops,int num_threads, double threshold) {
+    std::vector<std::pair<vertex*,double>> spreading_activation::algorithm(oc::graph& g,const std::string& start_id, int max_hops,int num_threads, double threshold) {
 
         std::chrono::time_point<std::chrono::system_clock> start, end;
         start = std::chrono::system_clock::now();

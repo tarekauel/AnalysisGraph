@@ -38,7 +38,7 @@ int main() {
     oc::spreading_activation alg;
     
     //std::vector<std::pair<oc::vertex*,double>> result = alg.spreading_activation(g,id,6,8,0);
-    std::vector<std::pair<oc::vertex*,double>> result = alg.spreading_activation(g,id,10,8,0.00001);
+    std::vector<std::pair<oc::vertex*,double>> result = alg.algorithm(g,id,10,8,0.00001);
 
     int i=0;
     for (auto p = result.begin(); p != result.end(); ++p) {
