@@ -41,20 +41,41 @@ namespace oc {
         return neighbors;
     }
 
-    void vertex::print_rel() {
-        bool first = true;
-        std::cout << "[" << std::endl;
-        for (auto p = rel_out.begin(); p != rel_out.end(); ++p) {
-            if (first) first = false;
-            else std::cout << "," << std::endl;
-            std::cout << "\t" << *p;
+    std::string vertex::get_alias() const {
+        std::map<std::string,std::string>::const_iterator it;
+        std::string alias;
+        it = properties.find("name");
+        if (it != properties.end()) {
+            alias = it->second;
         }
-        for (auto p = rel_in.begin(); p != rel_in.end(); ++p) {
-            if (first) first = false;
-            else std::cout << "," << std::endl;
-            std::cout << "\t" << *p;
+        it = properties.find("label");
+        if (it != properties.end()) {
+            alias = it->second;
         }
-        std::cout << std::endl << "]";
+        it = properties.find("first_name");
+        if (it != properties.end()) {
+            std::string first_name = it->second;
+            it = properties.find("last_name");
+            if (it != properties.end()) {
+                alias = first_name + " " + it->second;
+            }
+        }
+        if (alias == "") alias = get_identifier();
+        /*it = properties.find("type");
+        if (it != properties.end()) {
+            alias += " (" + it->second + ")";
+        }*/
+        return alias;
+    }
+
+    std::string vertex::get_alias_with_type() const {
+        std::string alias = get_alias();
+        std::string type = get_property("type");
+        if (type != "") {
+            return alias + " (" + type + ")";
+        } else {
+            return alias;
+        }
     }
 
 }

@@ -12,14 +12,22 @@ namespace oc {
     private:
         std::vector<vertex*> vertex_list;
         std::unordered_map<std::string,vertex*> vertex_map;
+        std::string& clean_string(std::string&) const;
+        std::vector<std::string> get_column_names(const std::string&) const;
     public:
         graph() {}
-        void build_graph(std::ifstream&);
+        void add_edges_by_file(const std::string& filename,const std::string& delimiter = ",");
+        void add_vertices_by_file(const std::string&,const std::vector<std::string>&);
+
+
         ~graph();
         
         vertex* get_vertex(std::string);
         vertex* operator[](unsigned long i) {
             return vertex_list.at(i);
+        }
+        std::vector<vertex*>& get_vertices() {
+            return vertex_list;
         }
         
         vertex* operator[](const std::string);

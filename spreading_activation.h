@@ -17,26 +17,15 @@ namespace oc {
     
     class graph;
     class vertex;
-    
-    class Impuls {
-    private:
-    public:
-        Impuls() :node{NULL},prev_impuls{nullptr} {};
-        Impuls(vertex* v,double p) :node{v},power{p},prev_impuls{nullptr} {};
-
-        vertex* node;
-        double power;
-        Impuls* prev_impuls;
-        int hops = 0;
-    };
+    template<typename T>
+    class Impuls;
 
     class spreading_activation {
+    private:
     public:
-
-        std::vector<std::pair<vertex*,double>> algorithm(oc::graph&,const std::string&,int,int,double);
-        void worker(std::vector<std::vector<Impuls*>*>*, std::vector<std::pair<long unsigned int,Impuls*>>*,int,double,int,std::vector<std::timed_mutex*>*,std::vector<int*>*,std::vector<Impuls*>*);
-        void spreading_activation_step(Impuls*,std::vector<std::pair<long unsigned int,Impuls*>>&, std::vector<Impuls*>&,int,double,std::vector<Impuls*>*);
-        bool check_history(Impuls*, const vertex*);
+        std::vector<std::pair<vertex*,std::pair<double,std::vector<Impuls<double>*>>>> algorithm(oc::graph&,const std::string&,int,int,double,const std::string&);
+        void worker(std::vector<std::vector<Impuls<double>*>*>*, std::vector<std::pair<long unsigned int,Impuls<double>*>>*,int,double,int,std::vector<std::timed_mutex*>*,std::vector<int*>*,std::vector<Impuls<double>*>*);
+        void spreading_activation_step(Impuls<double>*,std::vector<std::pair<long unsigned int,Impuls<double>*>>&, std::vector<Impuls<double>*>&,int,double,std::vector<Impuls<double>*>*);
     };
 
 
