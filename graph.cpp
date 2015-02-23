@@ -18,7 +18,7 @@ namespace oc {
         start = std::chrono::system_clock::now();
 
         if (!in.is_open()) {
-            std::cerr << "File could not be opended" << std::endl;
+            std::cerr << "File " << filename << " could not be opended" << std::endl;
             return;
         }
         std::string s;

@@ -16,26 +16,29 @@
 #include <tbb/parallel_reduce.h>
 #include <tbb/parallel_for_each.h>
 
+#include <boost/algorithm/string/replace.hpp>
+
 #include <iostream>
 #include <thread>
 #include <fstream>
 
+#include <tuple>
+#include <Python/Python.h>
+
 namespace oc {
     
-    typedef std::pair<vertex*,std::pair<double,std::vector<Impuls<double>*>>> CPair;
+    typedef std::tuple<vertex*,double,std::vector<Impuls<double>*>> CPair;
 
-    const int limit = 1000;
-
-    int started_threads;
-    int finished_threads;
-
-    std::mutex shared_list;
+    std::string escape(std::string s) {
+        boost::replace_all(s, "\"", "\\\"");
+        return s;
+    }
 
     void spreading_activation::worker(std::vector<std::vector<Impuls<double>*>*>* task_list, std::vector<std::pair<long unsigned int,Impuls<double>*>>* aggregates,int max_hops,double threshold, int thread, std::vector<std::timed_mutex*>* locks, std::vector<int*>* counters, std::vector<Impuls<double>*>* created_impuls) {
         std::vector<std::pair<long unsigned int,Impuls<double>*>> custom_aggregates;
         std::vector<Impuls<double>*> custom_created_impuls;
 
-        std::unique_lock<std::mutex> lck_shared {shared_list, std::defer_lock};
+        std::unique_lock<std::mutex> lck_shared {*shared_list, std::defer_lock};
         std::unique_lock<std::timed_mutex> lck_own {*(*locks)[thread], std::defer_lock};
 
         std::vector<Impuls<double>*>* custom_task_list = task_list->at(thread);
@@ -55,15 +58,15 @@ namespace oc {
                     if (i!=thread) {
                         std::unique_lock<std::timed_mutex> temp_lock {*(locks->at(i)),std::defer_lock};
                         if (temp_lock.try_lock_for(std::chrono::milliseconds(10))) {
-                            int *temp_counter = counters->at(i);
+                            int* temp_counter = counters->at(i);
                             std::vector<Impuls<double>*> *temp_task_list = task_list->at(i);
-                            int diff = temp_task_list->size() - *temp_counter;
+                            int diff = temp_task_list->size() - (*temp_counter);
                             if (diff > limit) {
                                 if (lck_own.try_lock_for(std::chrono::milliseconds(10))) {
-                                    std::move(temp_task_list->end() - diff / 2, temp_task_list->end(), std::back_inserter(*custom_task_list));
-                                    temp_task_list->erase(temp_task_list->end() - diff / 2, temp_task_list->end());
+                                    std::move(temp_task_list->end() - (diff / 2), temp_task_list->end(), std::back_inserter(*custom_task_list));
+                                    temp_task_list->erase(temp_task_list->end() - (diff / 2), temp_task_list->end());
                                     grabbed = true;
-                                    std::cout << "Grabbed " << diff / 2 << " items" << std::endl;
+                                    std::cout << "Grabbed " << (diff / 2) << " items" << std::endl;
                                     lck_own.unlock();
                                 }
                             }
@@ -96,8 +99,8 @@ namespace oc {
         } while (started_threads != finished_threads && could_not_grab != 2);
     }
 
-    std::vector<std::pair<vertex*,std::pair<double,std::vector<Impuls<double>*>>>> spreading_activation::algorithm(oc::graph& g,const std::string& start_id, int max_hops,int num_threads, double threshold, const std::string& output_filename) {
-
+    std::vector<std::tuple<vertex*,double,std::vector<Impuls<double>*>>> spreading_activation::algorithm(oc::graph& g,const std::string& start_id, int max_hops,int num_threads, double threshold, const std::string& output_filename, std::string& response) {
+        shared_list = new std::mutex();
         std::chrono::time_point<std::chrono::system_clock> start, end;
         start = std::chrono::system_clock::now();
 
@@ -144,7 +147,7 @@ namespace oc {
 
         tbb::parallel_sort( aggregates.begin(), aggregates.end(),[](std::pair<long unsigned int,Impuls<double>*>& a, std::pair<long unsigned int,Impuls<double>*>& b){return a.first > b.first;});
 
-        std::vector<std::pair<vertex*,std::pair<double,std::vector<Impuls<double>*>>>> result;
+        std::vector<std::tuple<vertex*,double,std::vector<Impuls<double>*>>> result;
 
         long unsigned int last_id = 0;
         bool first = true;
@@ -153,7 +156,7 @@ namespace oc {
         for (auto p : aggregates) {
             if (first || last_id != p.first) {
                 if (!first) {
-                    result.push_back(std::pair<vertex*,std::pair<double,std::vector<Impuls<double>*>>>{g[last_id],std::pair<double,std::vector<Impuls<double>*>>{sum,tracking}});
+                    result.push_back(std::make_tuple(g[last_id],sum,tracking));
                 }
                 tracking = std::vector<Impuls<double>*>();
                 sum = 0;
@@ -164,10 +167,10 @@ namespace oc {
             tracking.push_back(p.second);
         }
 
-        result.push_back(std::pair<vertex*,std::pair<double,std::vector<Impuls<double>*>>>{g[last_id],std::pair<double,std::vector<Impuls<double>*>>{sum,tracking}});
-        result.push_back(std::pair<vertex*,std::pair<double,std::vector<Impuls<double>*>>>{start_impuls->node,std::pair<double,std::vector<Impuls<double>*>>{1,{nullptr}}});
+        result.push_back(std::make_tuple(g[last_id],sum,tracking));
+        result.push_back(std::make_tuple(start_impuls->node,1,std::vector<Impuls<double>*>()));
         
-        tbb::parallel_sort(result.begin(),result.end(),[](CPair& a, CPair& b){return a.second.first > b.second.first;});
+        tbb::parallel_sort(result.begin(),result.end(),[](CPair& a, CPair& b){return std::get<1>(a) > std::get<1>(b);});
 
         end = std::chrono::system_clock::now();
         
@@ -175,20 +178,20 @@ namespace oc {
                     std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() <<
                     " ms" << std::endl;
 
-        {
+        /*if (output_filename != "") {
             std::ofstream out {output_filename};
             out << "[" << std::endl;
             first = true;
             int i = 0;
             for (auto r = result.begin(); r != result.end() && i != 100; ++i, ++r) {
-                vertex *v = r->first;
+                vertex *v = std::get<0>(*r);
                 if (first) first = false;
                 else out << "," << std::endl;
-                out << "\t{\"id\":\"" << v->get_identifier() << "\",\"value\":" << r->second.first <<
+                out << "\t{\"id\":\"" << v->get_identifier() << "\",\"value\":" << std::get<1>(*r) <<
                         ",\"type\":\"" << v->get_property("type") << "\"" <<
                         ",\"name\":\"" << v->get_alias() << "\",\"tracking\":[";
                 bool inner_first = true;
-                for (auto t : r->second.second) {
+                for (auto t : (std::get<2>(*r))) {
                     if (t != nullptr) {
                         std::vector<vertex*> history;
                         Impuls<double>::resolve_history(t, history);
@@ -207,9 +210,45 @@ namespace oc {
                 out << "]}";
             }
             out << std::endl << "]";
+        }*/
+
+        response += "[\r\n";
+        first = true;
+        int i = 0;
+        for (auto r = result.begin(); r != result.end() && i != 100; ++i, ++r) {
+            vertex *v = std::get<0>(*r);
+            if (first) first = false;
+            else response += ",\r\n";
+            response +=  "\t{\"id\":\"" + escape(v->get_identifier()) + "\",\"value\":" + std::to_string(std::get<1>(*r)) +
+                         ",\"type\":\"" + escape(v->get_property("type")) + "\"" +
+                         ",\"name\":\"" + escape(v->get_alias()) + "\",\"tracking\":[";
+            bool inner_first = true;
+            auto result_sort = (std::get<2>(*r));
+            std::sort(result_sort.begin(),result_sort.end(),[](Impuls<double>* a,Impuls<double>* b){return a->power > b->power;});
+            for (auto t : result_sort) {
+                if (t != nullptr) {
+                    std::vector<vertex*> history;
+                    Impuls<double>::resolve_history(t, history);
+                    if (inner_first) inner_first = false;
+                    else response += ",";
+                    response += "";
+                    response += "{\"power\":" + std::to_string(t->power) + ", \"path\":[";
+                    bool inner_inner_first = true;
+                    for (auto v : history) {
+                        if (inner_inner_first) inner_inner_first = false;
+                        else response += ",";
+                        response += "{\"node\":\"" + escape(v->get_alias_with_type()) + "\"}";
+                    }
+                    response += "]}";
+                }
+            }
+            response += "]}";
         }
+        response += "\r\n]";
 
         Impuls<double>::clean_list(created_impuls);
+
+        delete shared_list;
 
         return result;
     };

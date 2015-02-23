@@ -1,15 +1,4 @@
-cmake_minimum_required(VERSION 2.8.4)
-project(AnalysisGraph)
-
-MESSAGE(STATUS "Test")
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
-
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake/")
 find_package(Boost COMPONENTS regex)
 
 find_package(TBB REQUIRED)
@@ -17,8 +6,9 @@ find_package(TBB REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${TBB_INCLUDE_DIRS})
 
-set(SOURCE_FILES main.cpp graph.h graph.cpp vertex.h vertex.cpp relationship.h relationship.cpp impuls.h spreading_activation.cpp shortest_path.h shortest_path.cpp)
-add_executable(AnalysisGraphTool ${SOURCE_FILES})
+set(SOURCE_FILES_GRAPH_TOOL graph.h graph.cpp vertex.h vertex.cpp relationship.h relationship.cpp impuls.h spreading_activation.cpp shortest_path.h shortest_path.cpp distance_algorithm.h distance_algorithm.cpp)
 
-target_link_libraries(AnalysisGraphTool ${Boost_LIBRARIES})
-target_link_libraries(AnalysisGraphTool ${TBB_LIBRARIES})
+add_library(analysisGraphLib ${SOURCE_FILES_GRAPH_TOOL})
+
+target_link_libraries(analysisGraphLib ${Boost_LIBRARIES})
+target_link_libraries(analysisGraphLib ${TBB_LIBRARIES})
