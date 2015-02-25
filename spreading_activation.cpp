@@ -178,40 +178,6 @@ namespace oc {
                     std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() <<
                     " ms" << std::endl;
 
-        /*if (output_filename != "") {
-            std::ofstream out {output_filename};
-            out << "[" << std::endl;
-            first = true;
-            int i = 0;
-            for (auto r = result.begin(); r != result.end() && i != 100; ++i, ++r) {
-                vertex *v = std::get<0>(*r);
-                if (first) first = false;
-                else out << "," << std::endl;
-                out << "\t{\"id\":\"" << v->get_identifier() << "\",\"value\":" << std::get<1>(*r) <<
-                        ",\"type\":\"" << v->get_property("type") << "\"" <<
-                        ",\"name\":\"" << v->get_alias() << "\",\"tracking\":[";
-                bool inner_first = true;
-                for (auto t : (std::get<2>(*r))) {
-                    if (t != nullptr) {
-                        std::vector<vertex*> history;
-                        Impuls<double>::resolve_history(t, history);
-                        if (inner_first) inner_first = false;
-                        else out << ",";
-                        out << "[";
-                        bool inner_inner_first = true;
-                        for (auto v : history) {
-                            if (inner_inner_first) inner_inner_first = false;
-                            else out << ",";
-                            out << "{\"node\":\"" << v->get_alias_with_type() << "\"}";
-                        }
-                        out << "]";
-                    }
-                }
-                out << "]}";
-            }
-            out << std::endl << "]";
-        }*/
-
         response += "[\r\n";
         first = true;
         int i = 0;

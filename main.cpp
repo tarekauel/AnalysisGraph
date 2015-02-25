@@ -13,8 +13,7 @@
 #include <errno.h>
 #include <cxxabi.h>
 
-static inline void printStackTrace( FILE *out = stderr, unsigned int max_frames = 63 )
-{
+static inline void printStackTrace( FILE *out = stderr, unsigned int max_frames = 63 ) {
     fprintf(out, "stack trace:\n");
 
     // storage array for stack trace address data
@@ -141,7 +140,11 @@ int main(int argc, char* argv[]) {
 
     oc::distance_algorithm da;
 
-    da.algorithm(g,"organization/big-data-elephants","organization/graphlab",5);
+    std::string json_result;
+
+    da.algorithm(g,"organization/big-data-elephants","organization/graphlab",5,json_result);
+
+    std::cout << json_result << std::endl;
 
 
     return 0;
